@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { Mic, Upload, Save, AlertCircle } from 'lucide-react';
-
+import ip from "../../serve.json";
 const Register = () => {
   const [speakerName, setSpeakerName] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -116,7 +116,7 @@ const Register = () => {
         formData.append('audio', uploadedFile);
       }
       
-      const response = await axios.post('http://localhost:5000/register', formData, {
+      const response = await axios.post(`${ip.ip}/register`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
