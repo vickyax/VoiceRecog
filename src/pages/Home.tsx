@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mic, Users, ArrowRight } from 'lucide-react';
-
+import ip from "../../serve.json";
 const Home = () => {
   return (
     <div className="max-w-4xl mx-auto">

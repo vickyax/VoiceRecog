@@ -1,3 +1,4 @@
+//Recognize.tsx
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { Mic, Upload, Search, AlertCircle, User } from 'lucide-react';

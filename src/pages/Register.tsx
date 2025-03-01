@@ -1,3 +1,4 @@
+//Register.tsx
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { Mic, Upload, Save, AlertCircle } from 'lucide-react';
