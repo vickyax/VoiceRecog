@@ -9,24 +9,26 @@ import joblib
 from werkzeug.utils import secure_filename
 import re
 import soundfile as sf
+from concurrent.futures import ThreadPoolExecutor
+
 # Enable logging
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Configuration
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'm4a', 'flac', 'ogg'}
 SAMPLE_RATE = 16000  # Target sample rate
 
 # Ensure required directories exist
-os.makedirs('server/models', exist_ok=True)
-os.makedirs('server/uploads', exist_ok=True)
+os.makedirs('models', exist_ok=True)
+os.makedirs('uploads', exist_ok=True)
 
 # Load existing speaker database
 speakers_db = {}
-if os.path.exists('server/models/speakers_db.pkl'):
-    speakers_db = joblib.load('server/models/speakers_db.pkl')
+if os.path.exists('models/speakers_db.pkl'):
+    speakers_db = joblib.load('models/speakers_db.pkl')
     logging.info(f"Loaded {len(speakers_db)} registered speakers.")
 
 def allowed_file(filename):
@@ -103,7 +105,6 @@ def train_gmm(features, n_components=8):  # Reduced from 16 to 8
         return None
 
 @app.route('/register', methods=['POST'])
-
 def register_speaker():
     try:
         if 'name' not in request.form or 'audio' not in request.files:
@@ -116,7 +117,7 @@ def register_speaker():
             return jsonify({'error': 'Unsupported file format'}), 400
 
         filename = secure_filename(f"{speaker_name}_{audio_file.filename}")
-        audio_path = os.path.join('server/uploads', filename)
+        audio_path = os.path.join('uploads', filename)
         audio_file.save(audio_path)
 
         if not os.path.exists(audio_path):
@@ -127,35 +128,20 @@ def register_speaker():
 
         features = extract_features(audio_path)
 
-        
-
         if not validate_features(features):
-
             os.remove(audio_path)
-
             return jsonify({'error': 'Insufficient or invalid audio content'}), 400
 
-
         # Try different component counts if initial training fails
-
         for components in [8, 4, 2]:  # Fallback to simpler models
-
             gmm = train_gmm(features, n_components=components)
-
             if gmm:
-
                 speakers_db[speaker_name] = gmm
-
-                joblib.dump(speakers_db, 'server/models/speakers_db.pkl')
-
+                joblib.dump(speakers_db, 'models/speakers_db.pkl')
                 os.remove(audio_path)
-
                 return jsonify({'message': f'Registered with {components} components'}), 200
 
-        
-
         os.remove(audio_path)
-
         return jsonify({'error': 'Failed to train viable model'}), 500
 
     except Exception as e:
@@ -176,7 +162,7 @@ def recognize_speaker():
             return jsonify({'error': 'Unsupported file format'}), 400
 
         filename = secure_filename(f"recognize_{audio_file.filename}")
-        audio_path = os.path.join('server/uploads', filename)
+        audio_path = os.path.join('uploads', filename)
         audio_file.save(audio_path)
 
         logging.debug(f"Recognizing speaker from file: {audio_path}")
@@ -226,5 +212,5 @@ def health_check():
     }), 200
 
 if __name__ == '__main__':
-    logging.info("Starting Flask server on port 5000...")
-    app.run()
+    logging.info("Starting Flask server")
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
